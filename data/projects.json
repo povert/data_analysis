@@ -1,0 +1,26 @@
+[
+  {
+    "id": "d1938396-9527-46f1-bb52-d630f68a5294",
+    "filename": "test_data.csv",
+    "description": "测试用户数据，包含员工基本信息",
+    "file_type": "csv",
+    "record_count": 6,
+    "created_at": "2025-12-30 22:55:22.811074"
+  },
+  {
+    "id": "234f7687-1387-477e-8f3c-084291c2ec7d",
+    "filename": "test_data.json",
+    "description": "订单数据，包含订单和商品信息",
+    "file_type": "json",
+    "record_count": 3,
+    "created_at": "2025-12-30 22:55:27.979727"
+  },
+  {
+    "id": "53a00870-f30f-4000-a0af-756402f6c92e",
+    "filename": "test_data_columnar.json",
+    "description": "这个是一个特别的复杂的测试文件，我主要用它来测试分数\r\n分数三20分",
+    "file_type": "json",
+    "record_count": 6,
+    "created_at": "2025-12-30 23:39:36.385575"
+  }
+]

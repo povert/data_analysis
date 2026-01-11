@@ -1,0 +1,55 @@
+{
+  "data": [
+    {
+      "order_id": "ORD001",
+      "customer": "张三",
+      "amount": 299.99,
+      "status": "已完成",
+      "items": [
+        {
+          "name": "商品A",
+          "quantity": 2,
+          "price": 99.99
+        },
+        {
+          "name": "商品B",
+          "quantity": 1,
+          "price": 100.01
+        }
+      ]
+    },
+    {
+      "order_id": "ORD002",
+      "customer": "李四",
+      "amount": 599.5,
+      "status": "处理中",
+      "items": [
+        {
+          "name": "商品C",
+          "quantity": 3,
+          "price": 199.83
+        }
+      ]
+    },
+    {
+      "order_id": "ORD003",
+      "customer": "王五",
+      "amount": 150.0,
+      "status": "已完成",
+      "items": [
+        {
+          "name": "商品D",
+          "quantity": 1,
+          "price": 150.0
+        }
+      ]
+    }
+  ],
+  "columns": [
+    "order_id",
+    "customer",
+    "amount",
+    "status",
+    "items"
+  ]
+}

@@ -1,0 +1,7 @@
+name,age,city,email,description
+张三,25,北京,zhangsan@example.com,软件工程师，负责前端开发
+李四,30,上海,lisi@example.com,产品经理，负责需求分析
+王五,28,广州,wangwu@example.com,数据分析师，负责数据挖掘
+赵六,35,深圳,zhaoliu@example.com,技术总监，负责团队管理
+钱七,22,杭州,qianqi@example.com,UI设计师，负责界面设计
+孙八,29,成都,sunba@example.com,后端工程师，负责服务器开发
