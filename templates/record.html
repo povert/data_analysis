@@ -74,7 +74,7 @@
                             {% if value is string and (value.startswith('{') or value.startswith('[')) %}
                                 <div class="json-value">{{ value }}</div>
                             {% else %}
-                                <div>{{ value }}</div>
+                                <div class="field-value">{{ value }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -85,14 +85,16 @@
     </div>
 </div>
 
-{% if record_index > 0 %}
+{% if record_index > 0 or record_index < project.record_count - 1 %}
 <div class="row mt-3">
+    {% if record_index > 0 %}
     <div class="col-md-6">
         <a href="/project/{{ project.id }}/record/{{ record_index - 1 }}{% if current_fields %}?fields={{ current_fields }}{% endif %}" 
            class="btn btn-outline-secondary w-100">
             <i class="fas fa-chevron-left"></i> 上一条记录
         </a>
     </div>
+    {% endif %}
     {% if record_index < project.record_count - 1 %}
     <div class="col-md-6">
         <a href="/project/{{ project.id }}/record/{{ record_index + 1 }}{% if current_fields %}?fields={{ current_fields }}{% endif %}" 
@@ -107,6 +109,100 @@
 
 {% block scripts %}
 <script>
+// HTML转义函数
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        return text;
+    }
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// HTML反转义函数
+function unEscapeHtml(text) {
+    if (typeof text !== 'string') {
+        return text;
+    }
+    const map = {
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#039;': "'",
+        '&apos;': "'"
+    };
+    return text.replace(/&(amp|lt|gt|quot|#039|apos);/g, function(m) { return map[m]; });
+}
+
+// 安全的HTML sanitizer，只允许安全的HTML标签
+function sanitizeHtml(html) {
+    // 检查内容是否包含HTML标签
+    if (!html || typeof html !== 'string' || !html.includes('<') || !html.includes('>')) {
+        return html;
+    }
+    
+    // 使用DOMParser来解析HTML，确保安全性
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // 只允许安全的标签
+    const allowedTags = ['b', 'i', 'em', 'strong', 'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'span', 'div', 'small', 'code', 'pre'];
+    
+    // 递归处理DOM节点，移除不安全的标签
+    function sanitizeNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return document.createTextNode(node.textContent);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (allowedTags.includes(node.tagName.toLowerCase())) {
+                const newNode = document.createElement(node.tagName);
+                // 只允许安全的属性
+                for (let attr of node.attributes) {
+                    if (['class', 'style', 'id'].includes(attr.name.toLowerCase())) {
+                        // 确保style属性不包含危险内容
+                        if (attr.name.toLowerCase() === 'style') {
+                            const styleValue = attr.value.toLowerCase();
+                            if (!['javascript:', 'vbscript:', 'script:', 'url('].some(x => styleValue.includes(x))) {
+                                newNode.setAttribute(attr.name, attr.value);
+                            }
+                        } else {
+                            newNode.setAttribute(attr.name, attr.value);
+                        }
+                    }
+                }
+                for (let child of node.childNodes) {
+                    newNode.appendChild(sanitizeNode(child));
+                }
+                return newNode;
+            } else {
+                // 如果标签不安全，则提取其内容
+                const fragment = document.createDocumentFragment();
+                for (let child of node.childNodes) {
+                    fragment.appendChild(sanitizeNode(child));
+                }
+                return fragment;
+            }
+        }
+        return document.createDocumentFragment();
+    }
+    
+    // 处理文档的所有子节点
+    const sanitized = document.createDocumentFragment();
+    for (let child of doc.body.childNodes) {
+        sanitized.appendChild(sanitizeNode(child));
+    }
+    
+    // 创建一个临时容器来获取HTML字符串
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(sanitized);
+    return tempDiv.innerHTML;
+}
+
 $(document).ready(function() {
     // 为JSON值添加语法高亮
     $('.json-value').each(function() {
@@ -226,6 +322,12 @@ function syntaxHighlight(json) {
     border-radius: 0.25rem;
     margin: 0 -0.75rem;
     padding: 0.75rem;
+}
+
+/* 使字段值支持换行 */
+.field-value {
+    white-space: pre-wrap; /* 保留空白符和换行符 */
+    word-wrap: break-word; /* 长内容自动换行 */
 }
 
 /* 响应式调整 */

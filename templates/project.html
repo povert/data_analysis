@@ -101,6 +101,100 @@
 
 {% block scripts %}
 <script>
+// HTML转义函数
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        return text;
+    }
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// HTML反转义函数
+function unEscapeHtml(text) {
+    if (typeof text !== 'string') {
+        return text;
+    }
+    const map = {
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#039;': "'",
+        '&apos;': "'"
+    };
+    return text.replace(/&(amp|lt|gt|quot|#039|apos);/g, function(m) { return map[m]; });
+}
+
+// 安全的HTML sanitizer，只允许安全的HTML标签
+function sanitizeHtml(html) {
+    // 检查内容是否包含HTML标签
+    if (!html || typeof html !== 'string' || !html.includes('<') || !html.includes('>')) {
+        return html;
+    }
+    
+    // 使用DOMParser来解析HTML，确保安全性
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // 只允许安全的标签
+    const allowedTags = ['b', 'i', 'em', 'strong', 'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'span', 'div', 'small', 'code', 'pre'];
+    
+    // 递归处理DOM节点，移除不安全的标签
+    function sanitizeNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return document.createTextNode(node.textContent);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (allowedTags.includes(node.tagName.toLowerCase())) {
+                const newNode = document.createElement(node.tagName);
+                // 只允许安全的属性
+                for (let attr of node.attributes) {
+                    if (['class', 'style', 'id'].includes(attr.name.toLowerCase())) {
+                        // 确保style属性不包含危险内容
+                        if (attr.name.toLowerCase() === 'style') {
+                            const styleValue = attr.value.toLowerCase();
+                            if (!['javascript:', 'vbscript:', 'script:', 'url('].some(x => styleValue.includes(x))) {
+                                newNode.setAttribute(attr.name, attr.value);
+                            }
+                        } else {
+                            newNode.setAttribute(attr.name, attr.value);
+                        }
+                    }
+                }
+                for (let child of node.childNodes) {
+                    newNode.appendChild(sanitizeNode(child));
+                }
+                return newNode;
+            } else {
+                // 如果标签不安全，则提取其内容
+                const fragment = document.createDocumentFragment();
+                for (let child of node.childNodes) {
+                    fragment.appendChild(sanitizeNode(child));
+                }
+                return fragment;
+            }
+        }
+        return document.createDocumentFragment();
+    }
+    
+    // 处理文档的所有子节点
+    const sanitized = document.createDocumentFragment();
+    for (let child of doc.body.childNodes) {
+        sanitized.appendChild(sanitizeNode(child));
+    }
+    
+    // 创建一个临时容器来获取HTML字符串
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(sanitized);
+    return tempDiv.innerHTML;
+}
+
 const projectId = '{{ project.id }}';
 let allColumns = {{ project_data.columns|tojson }};
 let currentColumns = [...allColumns];
@@ -250,7 +344,13 @@ function renderTable(data) {
                 tr.attr('title', value);
             }
             
-            tr.append(`<td class="long-text">${displayValue}</td>`);
+            // 创建单元格元素并设置内容
+            const td = $('<td class="long-text"></td>');
+            
+            // 始终使用text()方法以原样显示内容，包括HTML标签
+            td.text(displayValue);
+            
+            tr.append(td);
         });
         
         body.append(tr);
@@ -324,16 +424,54 @@ function renderPagination(currentPage, totalPages, totalItems) {
             <a class="page-link" href="#" data-page="${currentPage + 1}">下一页</a>
         </li>
     `);
-    
-    // 绑定点击事件
-    $('.page-link').on('click', function(e) {
-        e.preventDefault();
-        const page = parseInt($(this).data('page'));
-        if (page && page !== currentPage) {
-            currentPage = page;
-            loadData();
-        }
-    });
 }
+
+// 绑定分页点击事件使用事件委托
+$(document).on('click', '.page-link', function(e) {
+    e.preventDefault();
+    const page = parseInt($(this).data('page'));
+    if (page && page !== currentPage) {
+        currentPage = page;
+        loadData();
+    }
+});
+
+$(document).ready(function() {
+    initializeFieldSelector();
+    loadData();
+    
+    // 应用字段选择
+    $('#applyFieldsBtn').on('click', function() {
+        const selectedFields = [];
+        $('#fieldCheckboxes input:checked').each(function() {
+            selectedFields.push($(this).val());
+        });
+        
+        currentColumns = selectedFields.length > 0 ? selectedFields : allColumns;
+        updateSelectedFieldsCount();
+        currentPage = 1;
+        loadData();
+        
+        // 关闭模态框
+        $('#fieldModal').modal('hide');
+    });
+    
+    // 全选字段
+    $('#selectAllFields').on('click', function() {
+        $('#fieldCheckboxes input').prop('checked', true);
+    });
+    
+    // 全不选字段
+    $('#deselectAllFields').on('click', function() {
+        $('#fieldCheckboxes input').prop('checked', false);
+    });
+    
+    // 每页显示数量变化
+    $('#perPageSelect').on('change', function() {
+        perPage = parseInt($(this).val());
+        currentPage = 1;
+        loadData();
+    });
+});
 </script>
 {% endblock %}
